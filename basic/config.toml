@@ -1,11 +1,8 @@
 # Basic Bot Configuration
 # This file contains the configuration for your Discord bot
+# Bot token is now stored in .env file for security
 
 [bot]
-# Your bot token from Discord Developer Portal
-# NEVER commit this file with a real token!
-token = "YOUR_BOT_TOKEN_HERE"
-
 # Command prefix
 prefix = "!"
 

@@ -1,10 +1,8 @@
 # Music Bot Configuration
 # Discord music bot for playing audio in voice channels
+# Bot token is now stored in .env file for security
 
 [bot]
-# Your bot token from Discord Developer Portal
-token = "YOUR_BOT_TOKEN_HERE"
-
 # Command prefix
 prefix = "!"
 

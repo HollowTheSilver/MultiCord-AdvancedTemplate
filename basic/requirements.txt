@@ -1,4 +1,4 @@
 # Basic Bot Requirements
 discord.py>=2.3.0
-toml>=0.10.2
 python-dotenv>=1.0.0
+tomli>=2.0.0;python_version<"3.11"

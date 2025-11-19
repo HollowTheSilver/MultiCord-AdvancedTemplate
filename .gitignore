@@ -97,3 +97,9 @@ test_output/
 # Documentation build
 docs/_build/
 site/
+
+# Internal Guidance Documentation (NEVER commit to Git)
+CLAUDE.md
+TODO.md
+PROJECT_STRUCTURE.md
+TESTING.md
