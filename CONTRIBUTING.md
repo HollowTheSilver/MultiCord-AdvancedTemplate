@@ -1,24 +1,45 @@
 # Contributing to MultiCord Templates
 
-Thank you for your interest in contributing to the MultiCord Templates repository! This document provides guidelines and instructions for creating and submitting Discord bot templates.
+Thank you for your interest in contributing to the MultiCord Templates repository! This document provides guidelines for creating and submitting Discord bot **templates** and **cogs**.
 
 ## 📋 Table of Contents
 
-- [Getting Started](#getting-started)
-- [Template Requirements](#template-requirements)
-- [Creating a New Template](#creating-a-new-template)
-- [Template Structure](#template-structure)
-- [Testing Your Template](#testing-your-template)
+- [Architecture Overview (v2.1.0)](#architecture-overview-v210)
+- [Contributing Templates](#contributing-templates)
+- [Contributing Cogs](#contributing-cogs)
+- [Testing](#testing)
 - [Submission Process](#submission-process)
 - [Code Standards](#code-standards)
 - [Review Process](#review-process)
 
-## 🚀 Getting Started
+---
+
+## 🏗️ Architecture Overview (v2.1.0)
+
+MultiCord uses a **modular architecture**:
+
+- **Templates**: Minimal bot scaffolding (~150-200 lines) with logging, configuration, and cog auto-loading
+- **Cogs**: Reusable feature modules (commands, event handlers, background tasks)
+- **Auto-Installation**: Templates can specify cogs to install automatically
+
+**Example**: The moderation template is ~160 lines of scaffolding that auto-installs the moderation-tools cog with all commands.
+
+---
+
+## 🎨 Contributing Templates
+
+### Template Philosophy (v2.1.0)
+
+Templates should be **minimal scaffolding** that:
+- Set up logging, configuration, and error handling
+- Auto-discover and load cogs from `cogs/` directory
+- Expose configuration to cogs via `self.config`
+- **Do NOT include feature logic** - that belongs in cogs!
 
 ### Prerequisites
 
 Before contributing, ensure you have:
-- Python 3.9 or higher installed
+- Python 3.9+ installed
 - Discord.py 2.0+ knowledge
 - MultiCord CLI installed (`pip install multicord`)
 - A Discord bot application (for testing)
@@ -32,75 +53,91 @@ Before contributing, ensure you have:
    git clone https://github.com/YOUR-USERNAME/MultiCord-Templates.git
    cd MultiCord-Templates
    ```
-3. Create a new branch for your template:
+3. Create a new branch:
    ```bash
    git checkout -b template/your-template-name
    ```
 
-## 📝 Template Requirements
+---
 
-### Mandatory Requirements
+### Template Requirements (v2.1.0)
+
+#### Mandatory Requirements
 
 All templates **MUST** include:
 
-1. **bot.py** - Main bot file
-   - Clear structure and organization
-   - Proper error handling
-   - Configuration loading from config.toml
+1. **bot.py** - Minimal bot scaffolding (~150-200 lines)
+   - Structured logging (file + console)
+   - Configuration loading from `.env` + `config.toml`
+   - Cog auto-discovery and loading
    - Graceful shutdown handling
-   - Logging implementation
+   - **NO feature logic** (use cogs!)
 
-2. **config.toml** - Configuration file
-   - Template metadata section
-   - Bot configuration section
-   - Clear documentation via comments
-   - No hardcoded tokens or secrets
+2. **.env.example** - Environment variable template
+   ```env
+   # Discord Bot Configuration
+   DISCORD_TOKEN=your_token_here
+   ```
 
-3. **requirements.txt** - Dependencies
-   - Pinned Discord.py version (>=2.0.0)
-   - All necessary dependencies listed
-   - Minimal dependencies preferred
+3. **config.toml** - Non-secret configuration
+   - Bot metadata (prefix, description)
+   - Feature flags
+   - **NO tokens or secrets!**
 
-4. **README.md** - Documentation
+4. **requirements.txt** - Base dependencies
+   ```txt
+   discord.py>=2.3.0
+   python-dotenv>=1.0.0
+   tomli>=2.0.0;python_version<"3.11"
+   ```
+
+5. **.gitignore** - Security
+   ```gitignore
+   .env
+   __pycache__/
+   logs/
+   *.pyc
+   ```
+
+6. **README.md** - Documentation
    - Template description
-   - Features list
-   - Configuration instructions
-   - Usage examples
+   - Features list (from auto-installed cogs)
+   - Setup instructions
    - Required Discord permissions
-   - Screenshots (optional but recommended)
 
-### Optional but Recommended
+7. **cogs/.gitkeep** - Cogs directory placeholder
 
-- **LICENSE** - If different from repository license
-- **examples/** - Example usage or command demonstrations
-- **.env.example** - Example environment variables
-- **tests/** - Unit tests for bot functionality
+#### Optional but Recommended
 
-## 🏗️ Creating a New Template
+- Example cogs in `cogs/` directory
+- Comprehensive README with troubleshooting
+- Screenshots of bot in action
 
-### Step 1: Choose a Template Name
+---
+
+### Creating a Template
+
+#### Step 1: Choose a Template Name
 
 - Use lowercase with hyphens: `my-template-name`
 - Be descriptive but concise
-- Avoid generic names like "bot" or "discord-bot"
 - Check existing templates to avoid duplicates
 
-### Step 2: Create Directory Structure
+#### Step 2: Create Directory Structure
 
 ```bash
 mkdir your-template-name
 cd your-template-name
 ```
 
-### Step 3: Create Required Files
+#### Step 3: Create Required Files
 
-**bot.py Example Structure:**
+**bot.py Template (v2.1.0):**
 
 ```python
 #!/usr/bin/env python3
 """
 [Template Name] - Brief description
-A detailed description of what this template does.
 """
 
 import os
@@ -109,277 +146,497 @@ import logging
 from pathlib import Path
 import discord
 from discord.ext import commands
-import toml
+from datetime import datetime
+from dotenv import load_dotenv
+
+try:
+    import tomli
+except ImportError:
+    import tomllib as tomli
+
+# Load environment variables
+load_dotenv()
 
 # Setup logging
+log_dir = Path("logs")
+log_dir.mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='[%(asctime)s] [%(levelname)s] %(name)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
     handlers=[
-        logging.FileHandler('logs/bot.log'),
+        logging.FileHandler(log_dir / 'bot.log', encoding='utf-8'),
         logging.StreamHandler(sys.stdout)
     ]
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('discord')
 
 # Load configuration
 config_path = Path(__file__).parent / "config.toml"
 if config_path.exists():
-    with open(config_path) as f:
-        config = toml.load(f)
+    with open(config_path, 'rb') as f:
+        config = tomli.load(f)
 else:
     logger.error("config.toml not found!")
     sys.exit(1)
 
-# Bot setup
+# Get bot token from environment
+TOKEN = os.getenv('DISCORD_TOKEN')
+if not TOKEN:
+    logger.error("DISCORD_TOKEN not found in environment variables!")
+    logger.error("Please create a .env file with your Discord bot token.")
+    sys.exit(1)
+
+# Bot configuration
+PREFIX = config["bot"].get("prefix", "!")
+DESCRIPTION = config["bot"].get("description", "A Discord bot")
+
+# Intents configuration
 intents = discord.Intents.default()
-intents.message_content = True  # Required for message commands
+intents.message_content = True
+intents.guilds = True
 
-bot = commands.Bot(
-    command_prefix=config['bot']['prefix'],
-    intents=intents,
-    description=config['bot']['description']
-)
+class MyBot(commands.Bot):
+    """Your bot class with MultiCord integration."""
 
-@bot.event
-async def on_ready():
-    logger.info(f'{bot.user} has connected to Discord!')
-    logger.info(f'Bot is in {len(bot.guilds)} guilds')
+    def __init__(self):
+        super().__init__(
+            command_prefix=PREFIX,
+            description=DESCRIPTION,
+            intents=intents,
+            help_command=commands.DefaultHelpCommand()
+        )
+        self.start_time = datetime.utcnow()
+        self.bot_name = os.environ.get('BOT_NAME', 'my-bot')
+        self.bot_port = os.environ.get('BOT_PORT', '8100')
+        self.logger = logger
+        self.config = config  # Expose config to cogs
 
-@bot.event
-async def on_command_error(ctx, error):
-    """Global error handler."""
-    if isinstance(error, commands.CommandNotFound):
-        return
-    logger.error(f'Error in command {ctx.command}: {error}')
-    await ctx.send(f'An error occurred: {error}')
+    async def setup_hook(self):
+        """Setup hook for bot initialization."""
+        self.logger.info(f"Starting bot setup for {self.bot_name}")
 
-# Your commands here
-@bot.command(name='hello')
-async def hello(ctx):
-    """Say hello!"""
-    await ctx.send(f'Hello {ctx.author.mention}!')
+        # Load cogs
+        await self._load_cogs()
 
-if __name__ == '__main__':
+        self.logger.info("Bot setup complete")
+
+    async def _load_cogs(self):
+        """Auto-discover and load all cogs from cogs/ directory."""
+        cogs_dir = Path(__file__).parent / 'cogs'
+
+        if not cogs_dir.exists():
+            self.logger.info("No cogs directory found - running without extensions")
+            return
+
+        cog_count = 0
+        failed_cogs = []
+
+        for item in cogs_dir.iterdir():
+            if not item.is_dir() or item.name.startswith('_'):
+                continue
+
+            if not (item / '__init__.py').exists():
+                self.logger.warning(f"Skipping {item.name} - not a valid Python package")
+                continue
+
+            cog_name = f'cogs.{item.name}'
+            try:
+                await self.load_extension(cog_name)
+                self.logger.info(f"✓ Loaded cog: {item.name}")
+                cog_count += 1
+            except Exception as e:
+                self.logger.error(f"✗ Failed to load cog {item.name}: {e}")
+                failed_cogs.append((item.name, str(e)))
+
+        if cog_count > 0:
+            self.logger.info(f"Successfully loaded {cog_count} cog(s)")
+        else:
+            self.logger.info("No cogs loaded")
+
+        if failed_cogs:
+            self.logger.warning(f"Failed to load {len(failed_cogs)} cog(s)")
+
+    async def on_ready(self):
+        """Event triggered when bot is ready."""
+        self.logger.info(f"Bot is ready!")
+        self.logger.info(f"  Logged in as: {self.user.name} (ID: {self.user.id})")
+        self.logger.info(f"  Connected to {len(self.guilds)} guild(s)")
+        self.logger.info(f"  Loaded {len(self.cogs)} cog(s)")
+
+        # Set status
+        await self.change_presence(
+            activity=discord.Activity(
+                type=discord.ActivityType.watching,
+                name=f"{PREFIX}help"
+            )
+        )
+
+    async def close(self):
+        """Graceful shutdown handler."""
+        self.logger.info("Shutting down bot...")
+        await super().close()
+        self.logger.info("Bot shutdown complete")
+
+# Create bot instance
+bot = MyBot()
+
+if __name__ == "__main__":
+    # Run the bot
     try:
-        logger.info("Starting bot...")
-        bot.run(config['bot']['token'])
-    except KeyboardInterrupt:
-        logger.info("Bot shutdown requested")
+        bot.run(TOKEN)
+    except discord.LoginFailure:
+        logger.error("Invalid bot token! Please check your DISCORD_TOKEN in .env")
+        sys.exit(1)
     except Exception as e:
-        logger.error(f"Fatal error: {e}")
+        logger.error(f"Failed to start bot: {e}")
         sys.exit(1)
 ```
 
-**config.toml Example:**
+**config.toml Template:**
 
 ```toml
-[template]
-name = "your-template-name"
-version = "1.0.0"
-description = "Brief description of your template"
-author = "Your Name"
-discord_py_version = ">=2.0.0"
-python_version = ">=3.9"
-category = "general"  # general, moderation, entertainment, utility, advanced
-tags = ["keyword1", "keyword2", "keyword3"]
+# [Template Name] Configuration
+# Bot token is now stored in .env file for security
 
 [bot]
-token = "YOUR_BOT_TOKEN_HERE"  # Users will replace this
 prefix = "!"
-description = "A cool Discord bot"
-activity_type = "playing"  # playing, watching, listening
-activity_name = "with commands"
+description = "A Discord bot created with MultiCord"
+
+[bot.status]
+type = "watching"  # playing, watching, listening
+message = "for !help"
+
+[intents]
+members = false
+presences = false
+message_content = true
 
 [features]
-# Document your template's features
-slash_commands = false
-prefix_commands = true
-database = false  # Does this template use a database?
-api_integration = false  # Does this integrate with external APIs?
+# Template-specific features
+auto_restart = true
+debug_mode = false
 
-[permissions]
-# Required Discord permissions (as integers or names)
-# See: https://discord.com/developers/docs/topics/permissions
-required = ["send_messages", "embed_links"]
+[logging]
+level = "INFO"  # DEBUG, INFO, WARNING, ERROR
 ```
 
-**requirements.txt Example:**
+**.env.example:**
 
-```txt
-discord.py>=2.0.0
-python-dotenv>=1.0.0
-toml>=0.10.0
-# Add any other dependencies your bot needs
+```env
+# Discord Bot Configuration
+DISCORD_TOKEN=your_token_here
+
+# Optional: Additional configuration
+# DATABASE_URL=sqlite:///bot.db
 ```
 
-**README.md Template:**
+---
 
-````markdown
-# [Template Name]
-
-Brief one-line description of the template.
-
-## Description
-
-Detailed description of what this template does and what makes it useful.
-
-## Features
-
-- Feature 1
-- Feature 2
-- Feature 3
-
-## Prerequisites
-
-- Python 3.9 or higher
-- A Discord bot token
-- [Any other requirements]
-
-## Configuration
-
-1. Edit `config.toml`:
-   ```toml
-   [bot]
-   token = "your-bot-token-here"
-   prefix = "!"
-   ```
-
-2. [Additional configuration steps]
-
-## Usage
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the bot
-python bot.py
-```
-
-## Commands
-
-| Command | Description | Usage |
-|---------|-------------|-------|
-| `!command` | Does something | `!command [arg]` |
-
-## Required Discord Permissions
-
-- Permission 1
-- Permission 2
-
-## Screenshots
-
-[Optional: Add screenshots of your bot in action]
-
-## Notes
-
-[Any additional notes or warnings]
-
-## License
-
-[If different from repository license]
-````
-
-## 🧪 Testing Your Template
-
-### Local Testing
-
-1. **Create a test bot**:
-   ```bash
-   multicord bot create test-bot --template your-template-name
-   ```
-
-2. **Configure the bot**:
-   - Add your bot token to config.toml
-   - Adjust any other settings
-
-3. **Run the bot**:
-   ```bash
-   multicord bot start test-bot
-   ```
-
-4. **Test all features**:
-   - All commands work as documented
-   - Error handling works properly
-   - Configuration options work
-   - Bot shuts down gracefully
-
-### Validation Checklist
-
-Before submitting, verify:
-
-- [ ] Bot runs without errors
-- [ ] All commands work as documented
-- [ ] Configuration is clear and well-documented
-- [ ] No hardcoded tokens or secrets
-- [ ] Logging works properly
-- [ ] Error handling is comprehensive
-- [ ] Code follows PEP 8 style guidelines
-- [ ] All required files are present
-- [ ] README.md is complete and accurate
-- [ ] requirements.txt includes all dependencies
-- [ ] Template works with MultiCord CLI
-
-## 📤 Submission Process
-
-### 1. Update manifest.json
+### Step 4: Update manifest.json
 
 Add your template to `manifest.json`:
 
 ```json
 {
-  "your-template-name": {
-    "name": "Your Template Name",
-    "description": "Brief description",
-    "version": "1.0.0",
-    "author": "Your Name",
-    "category": "general",
-    "tags": ["tag1", "tag2"],
-    "discord_py_version": ">=2.0.0",
-    "python_version": ">=3.9",
-    "files": ["bot.py", "config.toml", "requirements.txt", "README.md"],
-    "featured": false
+  "templates": {
+    "your-template": {
+      "name": "Your Template Name",
+      "description": "Brief description",
+      "version": "1.0.0",
+      "author": "Your Name",
+      "category": "general",
+      "tags": ["tag1", "tag2"],
+      "discord_py_version": ">=2.3.0",
+      "python_version": ">=3.9",
+      "files": ["bot.py", "config.toml", ".env.example", ".gitignore", "requirements.txt", "README.md", "cogs/.gitkeep"],
+      "featured": false,
+      "auto_install_cogs": [
+        {
+          "id": "cog-name",
+          "version": ">=1.0.0",
+          "required": true,
+          "reason": "Provides core functionality"
+        }
+      ],
+      "changelog": {
+        "1.0.0": ["Initial release"]
+      }
+    }
   }
 }
 ```
 
-### 2. Commit Your Changes
+---
+
+## 🧩 Contributing Cogs
+
+### Cog Philosophy
+
+Cogs should be **self-contained, reusable feature modules** that:
+- Work with any template
+- Include all dependencies in `requirements.txt`
+- Have comprehensive documentation
+- Follow Discord.py cog architecture
+
+### Cog Requirements
+
+All cogs **MUST** include:
+
+1. **__init__.py** - Main cog file
+   - Discord.py cog class
+   - `async def setup(bot)` function
+   - All commands and event handlers
+   - Comprehensive docstrings
+
+2. **manifest.json** - Cog metadata
+   ```json
+   {
+     "name": "Cog Name",
+     "id": "cog-name",
+     "version": "1.0.0",
+     "author": "Your Name",
+     "description": "Brief description",
+     "category": "moderation",
+     "tags": ["tag1", "tag2"],
+     "discord_py_version": ">=2.0.0",
+     "python_version": ">=3.9",
+     "database_required": false,
+     "files": ["__init__.py", "requirements.txt", "manifest.json", "README.md"],
+     "features": {
+       "feature1": true
+     },
+     "permissions": {
+       "required": ["send_messages"],
+       "optional": []
+     },
+     "commands": {
+       "group": ["command1", "command2"]
+     }
+   }
+   ```
+
+3. **requirements.txt** - Dependencies (even if empty)
+   ```txt
+   # Additional dependencies beyond discord.py
+   # Leave empty if no additional dependencies
+   ```
+
+4. **README.md** - Comprehensive documentation
+   - Features list
+   - Installation instructions
+   - Command usage examples
+   - Configuration options
+   - Troubleshooting guide
+
+---
+
+### Creating a Cog
+
+#### Step 1: Create Cog Directory
 
 ```bash
-git add your-template-name/
+mkdir cogs/your-cog-name
+cd cogs/your-cog-name
+```
+
+#### Step 2: Create Cog Files
+
+**__init__.py Template:**
+
+```python
+"""
+Your Cog Name for MultiCord.
+Brief description of what this cog does.
+"""
+
+import discord
+from discord.ext import commands
+import logging
+
+logger = logging.getLogger('discord.your-cog')
+
+
+class YourCog(commands.Cog, name="Your Cog"):
+    """
+    Brief description of your cog.
+
+    Features:
+    - Feature 1
+    - Feature 2
+    """
+
+    def __init__(self, bot):
+        self.bot = bot
+        self.logger = logger
+
+        # Load configuration if available
+        config = getattr(bot, 'config', {})
+        your_config = config.get('your_cog', {})
+        self.enabled = your_config.get('enabled', True)
+
+        self.logger.info("Your Cog loaded")
+
+    def cog_unload(self):
+        """Cleanup when cog is unloaded."""
+        self.logger.info("Your Cog unloaded")
+
+    @commands.command(name='yourcommand')
+    async def your_command(self, ctx):
+        """
+        Brief command description.
+
+        Usage: !yourcommand
+        """
+        await ctx.send("Hello from your cog!")
+        self.logger.info(f"{ctx.author} used yourcommand")
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Example event listener."""
+        if message.author.bot:
+            return
+        # Your event handling logic
+
+    @your_command.error
+    async def command_error(self, ctx, error):
+        """Error handler for your command."""
+        if isinstance(error, commands.MissingPermissions):
+            await ctx.send("You don't have permission to use this command.")
+        else:
+            self.logger.error(f"Error in command: {error}")
+
+
+async def setup(bot):
+    """Discord.py cog setup function."""
+    await bot.add_cog(YourCog(bot))
+```
+
+#### Step 3: Update Repository manifest.json
+
+Add your cog to the `cogs` section of `manifest.json`:
+
+```json
+{
+  "cogs": {
+    "your-cog-name": {
+      "name": "Your Cog Name",
+      "description": "Brief description",
+      "version": "1.0.0",
+      "author": "Your Name",
+      "category": "utility",
+      "tags": ["tag1", "tag2"],
+      "discord_py_version": ">=2.0.0",
+      "python_version": ">=3.9",
+      "database_required": false,
+      "files": ["__init__.py", "requirements.txt", "manifest.json", "README.md"],
+      "featured": false,
+      "changelog": {
+        "1.0.0": "Initial release"
+      }
+    }
+  }
+}
+```
+
+---
+
+## 🧪 Testing
+
+### Testing Templates
+
+1. **Create test bot**:
+   ```bash
+   multicord bot create test-bot --template your-template
+   ```
+
+2. **Configure**:
+   ```bash
+   cd ~/.multicord/bots/test-bot
+   nano .env  # Add DISCORD_TOKEN
+   ```
+
+3. **Start bot**:
+   ```bash
+   multicord bot start test-bot
+   ```
+
+4. **Verify**:
+   - Bot connects successfully
+   - Cogs load correctly
+   - Commands work as expected
+   - No errors in logs
+
+### Testing Cogs
+
+1. **Install cog**:
+   ```bash
+   multicord cog add test-bot your-cog-name
+   ```
+
+2. **Restart bot**:
+   ```bash
+   multicord bot restart test-bot
+   ```
+
+3. **Verify**:
+   - Cog loads without errors
+   - Commands are registered
+   - Functionality works correctly
+   - Works with multiple templates
+
+### Validation Checklist
+
+- [ ] No hardcoded tokens or secrets
+- [ ] All commands work as documented
+- [ ] Error handling is comprehensive
+- [ ] Code follows PEP 8 guidelines
+- [ ] Documentation is complete
+- [ ] Works with MultiCord CLI
+- [ ] No unnecessary dependencies
+- [ ] Logging is appropriate
+
+---
+
+## 📤 Submission Process
+
+### 1. Commit Changes
+
+```bash
+git add your-contribution/
 git add manifest.json
-git commit -m "Add [template-name] template"
+git commit -m "Add [name] template/cog"
 ```
 
-### 3. Push to Your Fork
+### 2. Push to Fork
 
 ```bash
-git push origin template/your-template-name
+git push origin template/your-branch-name
 ```
 
-### 4. Create Pull Request
+### 3. Create Pull Request
 
 1. Go to your fork on GitHub
 2. Click "New Pull Request"
-3. Fill in the PR template:
-   - Template name and description
-   - What problem it solves
-   - Any special considerations
+3. Fill in PR description:
+   - What you're contributing (template/cog)
+   - Features and purpose
+   - Testing performed
    - Screenshots (if applicable)
+
+---
 
 ## 💻 Code Standards
 
 ### Python Style
-
 - Follow PEP 8 guidelines
 - Use meaningful variable names
-- Add docstrings to functions
-- Keep functions focused and small
+- Add docstrings to all functions
 - Use type hints where appropriate
+- Keep functions focused and small
 
 ### Discord.py Best Practices
-
 - Use intents appropriately
 - Handle errors gracefully
 - Implement proper permission checks
@@ -387,63 +644,36 @@ git push origin template/your-template-name
 - Avoid rate limiting issues
 
 ### Security
-
-- **NEVER** commit bot tokens
-- **NEVER** commit API keys or secrets
-- Use environment variables or config files
+- **NEVER** commit tokens or secrets
+- **ALWAYS** use `.env` files for secrets
 - Validate all user input
 - Implement proper permission checks
+- Include `.env` in `.gitignore`
+
+---
 
 ## 👀 Review Process
 
 After submission, maintainers will:
 
-1. **Review your code** for:
-   - Functionality
-   - Code quality
-   - Security issues
-   - Documentation completeness
-
-2. **Test the template** with MultiCord CLI
-
+1. **Review code** for quality, security, and standards compliance
+2. **Test functionality** with MultiCord CLI
 3. **Provide feedback** via PR comments
-
 4. **Request changes** if needed
-
 5. **Merge** once approved
 
 ### Review Timeline
-
 - Initial review: Within 3-7 days
-- Follow-up reviews: Within 2-3 days
-- Merge: Once all feedback is addressed
+- Follow-up: Within 2-3 days
+- Merge: Once feedback addressed
 
-## 🎯 Template Categories
-
-### General
-Basic bots, utility bots, starter templates
-
-### Moderation
-Community management, anti-spam, logging, role management
-
-### Entertainment
-Music bots, games, fun commands, trivia
-
-### Utility
-Tools, automation, integration bots, productivity
-
-### Advanced
-Complex architectures, multi-service bots, advanced patterns
+---
 
 ## ❓ Questions?
 
 - **Issues**: [GitHub Issues](https://github.com/HollowTheSilver/MultiCord-Templates/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/HollowTheSilver/MultiCord-Templates/discussions)
 - **Discord**: Join our community server (coming soon)
-
-## 📜 Code of Conduct
-
-Please note that this project has a Code of Conduct. By participating, you agree to abide by its terms.
 
 ---
 

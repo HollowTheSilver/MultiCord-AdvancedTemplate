@@ -1,0 +1,49 @@
+{
+  "name": "Music Player",
+  "id": "music-player",
+  "version": "1.0.0",
+  "author": "MultiCord Team",
+  "description": "Music playback bot with queue management, YouTube support, and voice controls",
+  "category": "music",
+  "tags": ["music", "audio", "youtube", "playback", "queue", "voice"],
+  "discord_py_version": ">=2.0.0",
+  "python_version": ">=3.9",
+  "database_required": false,
+  "database_optional": false,
+  "files": ["__init__.py", "requirements.txt", "manifest.json", "README.md"],
+  "features": {
+    "voice_connect": true,
+    "youtube_playback": true,
+    "queue_management": true,
+    "volume_control": true,
+    "pause_resume": true,
+    "skip_command": true,
+    "nowplaying": true
+  },
+  "permissions": {
+    "required": ["send_messages", "embed_links", "connect", "speak"],
+    "optional": ["manage_messages"]
+  },
+  "commands": {
+    "voice": ["join", "leave"],
+    "playback": ["play", "pause", "resume", "stop", "skip"],
+    "queue": ["queue", "nowplaying"],
+    "controls": ["volume"]
+  },
+  "external_dependencies": {
+    "ffmpeg": {
+      "required": true,
+      "description": "Audio processing and encoding",
+      "install_url": "https://ffmpeg.org/download.html"
+    },
+    "yt-dlp": {
+      "required": true,
+      "description": "YouTube audio extraction",
+      "install_url": "https://github.com/yt-dlp/yt-dlp"
+    }
+  },
+  "installation": {
+    "cli_command": "multicord cog add <bot-name> music-player",
+    "notes": "Requires FFmpeg to be installed on the system for audio playback"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "Moderation Tools",
+  "id": "moderation-tools",
+  "version": "1.0.0",
+  "author": "MultiCord Team",
+  "description": "Comprehensive moderation toolkit with kick, ban, mute, warn, and auto-moderation features",
+  "category": "moderation",
+  "tags": ["moderation", "admin", "kick", "ban", "mute", "warn", "auto-mod"],
+  "discord_py_version": ">=2.0.0",
+  "python_version": ">=3.9",
+  "database_required": false,
+  "database_optional": false,
+  "files": ["__init__.py", "moderation.py", "requirements.txt", "manifest.json", "README.md"],
+  "features": {
+    "kick_command": true,
+    "ban_command": true,
+    "unban_command": true,
+    "mute_system": true,
+    "warning_system": true,
+    "auto_moderation": true,
+    "message_clear": true,
+    "slowmode_control": true
+  },
+  "permissions": {
+    "required": ["send_messages", "embed_links", "kick_members", "ban_members", "manage_messages", "manage_roles", "moderate_members"],
+    "optional": ["manage_channels", "view_audit_log"]
+  },
+  "commands": {
+    "moderation": ["kick", "ban", "unban", "mute", "unmute"],
+    "warnings": ["warn", "warnings"],
+    "channel": ["clear", "slowmode"]
+  },
+  "installation": {
+    "cli_command": "multicord cog add <bot-name> moderation-tools"
+  }
+}
