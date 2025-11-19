@@ -45,10 +45,14 @@ htmlcov/
 # Bot Tokens and Secrets - CRITICAL
 *.token
 .env
-.env.*
+.env.local
+.env.production
+.env.development
 config.local.toml
 secrets/
 credentials/
+
+# IMPORTANT: .env.example should NOT be ignored (it's the template)
 
 # Bot Instance Files (from testing templates)
 logs/

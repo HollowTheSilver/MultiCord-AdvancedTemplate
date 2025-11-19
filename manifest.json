@@ -146,7 +146,7 @@
     "business": {
       "name": "Professional Business Bot",
       "description": "Production-ready bot template for commissioned projects with automatic cog loading and enterprise features",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "MultiCord Team",
       "category": "advanced",
       "tags": ["professional", "commissioned", "modular", "production", "enterprise", "cog-system"],
@@ -155,6 +155,7 @@
       "files": ["bot.py", "config.toml", "requirements.txt", ".env.example", "README.md", "cogs/.gitkeep"],
       "featured": true,
       "changelog": {
+        "2.0.1": ["Fix: Added missing .env.example file for CLI auto-creation", "Security: Now fully aligned with v2.0.0 token security standards"],
         "2.0.0": ["Enhancement: Added .gitignore for security", "Enhancement: Added cogs/.gitkeep for directory structure", "Consistency: Aligned with other templates for v2.0.0 release"],
         "1.0.0": "Initial release with automatic cog loading, structured logging, and production-ready features"
       },
