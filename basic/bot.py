@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Basic Discord Bot Template for MultiCord.
-A simple, extensible Discord bot with command handling.
+A simple, extensible Discord bot with command handling and cog support.
 """
 
 import os
@@ -11,30 +11,48 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 from datetime import datetime
-import toml
+from dotenv import load_dotenv
+
+try:
+    import tomli
+except ImportError:
+    import tomllib as tomli
+
+# Load environment variables
+load_dotenv()
 
 # Setup logging
+log_dir = Path("logs")
+log_dir.mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='[%(asctime)s] [%(levelname)s] %(name)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
     handlers=[
-        logging.FileHandler('logs/bot.log'),
+        logging.FileHandler(log_dir / 'bot.log', encoding='utf-8'),
         logging.StreamHandler(sys.stdout)
     ]
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('discord')
 
 # Load configuration
 config_path = Path(__file__).parent / "config.toml"
 if config_path.exists():
-    with open(config_path) as f:
-        config = toml.load(f)
+    with open(config_path, 'rb') as f:
+        config = tomli.load(f)
 else:
     logger.error("config.toml not found!")
     sys.exit(1)
 
+# Get bot token from environment
+TOKEN = os.getenv('DISCORD_TOKEN')
+if not TOKEN:
+    logger.error("DISCORD_TOKEN not found in environment variables!")
+    logger.error("Please create a .env file with your Discord bot token.")
+    sys.exit(1)
+
 # Bot configuration
-TOKEN = config["bot"]["token"]
 PREFIX = config["bot"].get("prefix", "!")
 DESCRIPTION = config["bot"].get("description", "A basic Discord bot")
 
@@ -44,9 +62,10 @@ intents.message_content = True
 intents.guilds = True
 intents.members = True
 
+
 class BasicBot(commands.Bot):
     """Basic Discord bot with MultiCord integration."""
-    
+
     def __init__(self):
         super().__init__(
             command_prefix=PREFIX,
@@ -57,31 +76,71 @@ class BasicBot(commands.Bot):
         self.start_time = datetime.utcnow()
         self.bot_name = os.environ.get('BOT_NAME', 'basic-bot')
         self.bot_port = os.environ.get('BOT_PORT', '8100')
-        
+        self.logger = logger
+
     async def setup_hook(self):
         """Setup hook for bot initialization."""
-        logger.info(f"Setting up {self.bot_name} on port {self.bot_port}")
-        
+        self.logger.info(f"Starting bot setup for {self.bot_name}")
+
         # Load cogs
-        await self.load_extensions()
-        
-    async def load_extensions(self):
-        """Load bot extensions/cogs."""
-        cogs_dir = Path(__file__).parent / "cogs"
-        if cogs_dir.exists():
-            for cog_file in cogs_dir.glob("*.py"):
-                if cog_file.stem != "__init__":
-                    try:
-                        await self.load_extension(f"cogs.{cog_file.stem}")
-                        logger.info(f"Loaded cog: {cog_file.stem}")
-                    except Exception as e:
-                        logger.error(f"Failed to load cog {cog_file.stem}: {e}")
-    
+        await self._load_cogs()
+
+        self.logger.info("Bot setup complete")
+
+    async def _load_cogs(self):
+        """
+        Automatically discover and load all cogs from the cogs/ directory.
+
+        Looks for valid Python packages (directories with __init__.py).
+        """
+        cogs_dir = Path(__file__).parent / 'cogs'
+
+        if not cogs_dir.exists():
+            self.logger.info("No cogs directory found - running without extensions")
+            return
+
+        # Find all valid cog directories
+        cog_count = 0
+        failed_cogs = []
+
+        for item in cogs_dir.iterdir():
+            # Skip non-directories and private directories
+            if not item.is_dir() or item.name.startswith('_'):
+                continue
+
+            # Check if it has __init__.py (is a valid Python package)
+            if not (item / '__init__.py').exists():
+                self.logger.warning(f"Skipping {item.name} - not a valid Python package")
+                continue
+
+            # Try to load the cog
+            cog_name = f'cogs.{item.name}'
+            try:
+                await self.load_extension(cog_name)
+                self.logger.info(f"✓ Loaded cog: {item.name}")
+                cog_count += 1
+            except Exception as e:
+                self.logger.error(f"✗ Failed to load cog {item.name}: {e}")
+                failed_cogs.append((item.name, str(e)))
+
+        # Summary
+        if cog_count > 0:
+            self.logger.info(f"Successfully loaded {cog_count} cog(s)")
+        else:
+            self.logger.info("No cogs loaded")
+
+        if failed_cogs:
+            self.logger.warning(f"Failed to load {len(failed_cogs)} cog(s)")
+            for cog_name, error in failed_cogs:
+                self.logger.warning(f"  - {cog_name}: {error}")
+
     async def on_ready(self):
         """Event triggered when bot is ready."""
-        logger.info(f'{self.user} has connected to Discord!')
-        logger.info(f'Bot is in {len(self.guilds)} guilds')
-        
+        self.logger.info(f"Bot is ready!")
+        self.logger.info(f"  Logged in as: {self.user.name} (ID: {self.user.id})")
+        self.logger.info(f"  Connected to {len(self.guilds)} guild(s)")
+        self.logger.info(f"  Loaded {len(self.cogs)} cog(s)")
+
         # Set status
         await self.change_presence(
             activity=discord.Activity(
@@ -89,40 +148,51 @@ class BasicBot(commands.Bot):
                 name=f"{len(self.guilds)} servers | {PREFIX}help"
             )
         )
-        
+
     async def on_guild_join(self, guild):
         """Event triggered when bot joins a guild."""
-        logger.info(f'Joined guild: {guild.name} (ID: {guild.id})')
-        
+        self.logger.info(f'Joined guild: {guild.name} (ID: {guild.id})')
+
     async def on_guild_remove(self, guild):
         """Event triggered when bot leaves a guild."""
-        logger.info(f'Left guild: {guild.name} (ID: {guild.id})')
-        
+        self.logger.info(f'Left guild: {guild.name} (ID: {guild.id})')
+
     async def on_command_error(self, ctx, error):
         """Global error handler for commands."""
         if isinstance(error, commands.CommandNotFound):
             return
         elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(f"Missing required argument: {error.param.name}")
+            await ctx.send(f"❌ Missing required argument: {error.param.name}")
         elif isinstance(error, commands.BadArgument):
-            await ctx.send(f"Invalid argument provided: {error}")
+            await ctx.send(f"❌ Invalid argument provided: {error}")
         elif isinstance(error, commands.CommandOnCooldown):
-            await ctx.send(f"Command on cooldown. Try again in {error.retry_after:.1f}s")
+            await ctx.send(f"⏳ Command on cooldown. Try again in {error.retry_after:.1f}s")
         elif isinstance(error, commands.MissingPermissions):
-            await ctx.send("You don't have permission to use this command.")
+            await ctx.send("❌ You don't have permission to use this command.")
+        elif isinstance(error, commands.BotMissingPermissions):
+            await ctx.send("❌ I don't have the required permissions to do that.")
         else:
-            logger.error(f"Unhandled error in command {ctx.command}: {error}")
-            await ctx.send("An error occurred while processing this command.")
+            self.logger.error(f"Unhandled error in command {ctx.command}: {error}", exc_info=error)
+            await ctx.send("❌ An error occurred while processing this command.")
+
+    async def close(self):
+        """Graceful shutdown handler."""
+        self.logger.info("Shutting down bot...")
+        await super().close()
+        self.logger.info("Bot shutdown complete")
+
 
 # Create bot instance
 bot = BasicBot()
+
 
 # Basic commands
 @bot.command(name='ping')
 async def ping(ctx):
     """Check bot latency."""
     latency = round(bot.latency * 1000)
-    await ctx.send(f'Pong! Latency: {latency}ms')
+    await ctx.send(f'🏓 Pong! Latency: {latency}ms')
+
 
 @bot.command(name='uptime')
 async def uptime(ctx):
@@ -131,32 +201,34 @@ async def uptime(ctx):
     hours, remainder = divmod(int(delta.total_seconds()), 3600)
     minutes, seconds = divmod(remainder, 60)
     days, hours = divmod(hours, 24)
-    
+
     uptime_str = f"{days}d {hours}h {minutes}m {seconds}s"
-    await ctx.send(f'Bot uptime: {uptime_str}')
+    await ctx.send(f'⏱️ Bot uptime: {uptime_str}')
+
 
 @bot.command(name='stats')
 async def stats(ctx):
     """Display bot statistics."""
     embed = discord.Embed(
-        title="Bot Statistics",
+        title="📊 Bot Statistics",
         color=discord.Color.blue(),
         timestamp=datetime.utcnow()
     )
-    
+
     embed.add_field(name="Servers", value=len(bot.guilds), inline=True)
     embed.add_field(name="Users", value=len(bot.users), inline=True)
     embed.add_field(name="Commands", value=len(bot.commands), inline=True)
     embed.add_field(name="Latency", value=f"{round(bot.latency * 1000)}ms", inline=True)
-    
+
     delta = datetime.utcnow() - bot.start_time
     hours, remainder = divmod(int(delta.total_seconds()), 3600)
     minutes, _ = divmod(remainder, 60)
     embed.add_field(name="Uptime", value=f"{hours}h {minutes}m", inline=True)
-    
+
     embed.set_footer(text=f"MultiCord Bot: {bot.bot_name}")
-    
+
     await ctx.send(embed=embed)
+
 
 @bot.command(name='info')
 async def info(ctx):
@@ -166,38 +238,37 @@ async def info(ctx):
         description=bot.description,
         color=discord.Color.green()
     )
-    
+
     embed.add_field(
         name="About",
         value="This is a basic Discord bot template powered by MultiCord.",
         inline=False
     )
-    
+
     embed.add_field(name="Prefix", value=PREFIX, inline=True)
-    embed.add_field(name="Version", value="1.0.0", inline=True)
+    embed.add_field(name="Version", value="2.0.0", inline=True)
     embed.add_field(name="Library", value=f"discord.py {discord.__version__}", inline=True)
-    
+
     embed.set_thumbnail(url=bot.user.avatar.url if bot.user.avatar else None)
     embed.set_footer(text="Made with MultiCord")
-    
+
     await ctx.send(embed=embed)
+
 
 @bot.command(name='shutdown', hidden=True)
 @commands.is_owner()
 async def shutdown(ctx):
     """Shutdown the bot (owner only)."""
-    await ctx.send("Shutting down...")
+    await ctx.send("👋 Shutting down...")
     await bot.close()
 
+
 if __name__ == "__main__":
-    # Ensure logs directory exists
-    Path("logs").mkdir(exist_ok=True)
-    
     # Run the bot
     try:
         bot.run(TOKEN)
     except discord.LoginFailure:
-        logger.error("Invalid bot token! Please check your config.toml")
+        logger.error("Invalid bot token! Please check your DISCORD_TOKEN in .env")
         sys.exit(1)
     except Exception as e:
         logger.error(f"Failed to start bot: {e}")

@@ -31,7 +31,7 @@ __version__ = "1.0.0"
 __author__ = "HollowTheSilver"
 
 
-class PermissionsCog(commands.Cog, name="Permissions"):
+class PermissionsCog(commands.Cog, name="PermissionsBackend"):
     """
     Advanced permission management system for Discord bots.
 

@@ -11,32 +11,50 @@ from pathlib import Path
 import discord
 from discord.ext import commands, tasks
 from datetime import datetime, timedelta
-import toml
+from dotenv import load_dotenv
 import asyncio
 from typing import Optional, List
 
+try:
+    import tomli
+except ImportError:
+    import tomllib as tomli
+
+# Load environment variables
+load_dotenv()
+
 # Setup logging
+log_dir = Path("logs")
+log_dir.mkdir(exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    format='[%(asctime)s] [%(levelname)s] %(name)s: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S',
     handlers=[
-        logging.FileHandler('logs/bot.log'),
+        logging.FileHandler(log_dir / 'bot.log', encoding='utf-8'),
         logging.StreamHandler(sys.stdout)
     ]
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('discord')
 
 # Load configuration
 config_path = Path(__file__).parent / "config.toml"
 if config_path.exists():
-    with open(config_path) as f:
-        config = toml.load(f)
+    with open(config_path, 'rb') as f:
+        config = tomli.load(f)
 else:
     logger.error("config.toml not found!")
     sys.exit(1)
 
+# Get bot token from environment
+TOKEN = os.getenv('DISCORD_TOKEN')
+if not TOKEN:
+    logger.error("DISCORD_TOKEN not found in environment variables!")
+    logger.error("Please create a .env file with your Discord bot token.")
+    sys.exit(1)
+
 # Bot configuration
-TOKEN = config["bot"]["token"]
 PREFIX = config["bot"].get("prefix", "!")
 DESCRIPTION = config["bot"].get("description", "A moderation Discord bot")
 
@@ -66,23 +84,78 @@ class ModerationBot(commands.Bot):
         self.start_time = datetime.utcnow()
         self.bot_name = os.environ.get('BOT_NAME', 'moderation-bot')
         self.bot_port = os.environ.get('BOT_PORT', '8100')
-        
+        self.logger = logger
+
         # Moderation data (in production, use a database)
         self.warnings = {}  # {guild_id: {user_id: [warnings]}}
         self.muted_users = {}  # {guild_id: {user_id: unmute_time}}
-        
+
     async def setup_hook(self):
         """Setup hook for bot initialization."""
-        logger.info(f"Setting up {self.bot_name} on port {self.bot_port}")
-        
+        self.logger.info(f"Starting bot setup for {self.bot_name}")
+
+        # Load cogs
+        await self._load_cogs()
+
         # Start background tasks
         self.check_mutes.start()
+
+        self.logger.info("Bot setup complete")
+
+    async def _load_cogs(self):
+        """
+        Automatically discover and load all cogs from the cogs/ directory.
+
+        Looks for valid Python packages (directories with __init__.py).
+        """
+        cogs_dir = Path(__file__).parent / 'cogs'
+
+        if not cogs_dir.exists():
+            self.logger.info("No cogs directory found - running without extensions")
+            return
+
+        # Find all valid cog directories
+        cog_count = 0
+        failed_cogs = []
+
+        for item in cogs_dir.iterdir():
+            # Skip non-directories and private directories
+            if not item.is_dir() or item.name.startswith('_'):
+                continue
+
+            # Check if it has __init__.py (is a valid Python package)
+            if not (item / '__init__.py').exists():
+                self.logger.warning(f"Skipping {item.name} - not a valid Python package")
+                continue
+
+            # Try to load the cog
+            cog_name = f'cogs.{item.name}'
+            try:
+                await self.load_extension(cog_name)
+                self.logger.info(f"✓ Loaded cog: {item.name}")
+                cog_count += 1
+            except Exception as e:
+                self.logger.error(f"✗ Failed to load cog {item.name}: {e}")
+                failed_cogs.append((item.name, str(e)))
+
+        # Summary
+        if cog_count > 0:
+            self.logger.info(f"Successfully loaded {cog_count} cog(s)")
+        else:
+            self.logger.info("No cogs loaded")
+
+        if failed_cogs:
+            self.logger.warning(f"Failed to load {len(failed_cogs)} cog(s)")
+            for cog_name, error in failed_cogs:
+                self.logger.warning(f"  - {cog_name}: {error}")
         
     async def on_ready(self):
         """Event triggered when bot is ready."""
-        logger.info(f'{self.user} has connected to Discord!')
-        logger.info(f'Bot is in {len(self.guilds)} guilds')
-        
+        self.logger.info(f"Bot is ready!")
+        self.logger.info(f"  Logged in as: {self.user.name} (ID: {self.user.id})")
+        self.logger.info(f"  Connected to {len(self.guilds)} guild(s)")
+        self.logger.info(f"  Loaded {len(self.cogs)} cog(s)")
+
         # Set status
         await self.change_presence(
             activity=discord.Activity(
@@ -90,6 +163,12 @@ class ModerationBot(commands.Bot):
                 name=f"for rule breakers | {PREFIX}help"
             )
         )
+
+    async def close(self):
+        """Graceful shutdown handler."""
+        self.logger.info("Shutting down bot...")
+        await super().close()
+        self.logger.info("Bot shutdown complete")
     
     @tasks.loop(seconds=30)
     async def check_mutes(self):
@@ -356,14 +435,11 @@ async def slowmode(ctx, seconds: int):
     logger.info(f"{ctx.author} set slowmode to {seconds}s in {ctx.channel.name}")
 
 if __name__ == "__main__":
-    # Ensure logs directory exists
-    Path("logs").mkdir(exist_ok=True)
-    
     # Run the bot
     try:
         bot.run(TOKEN)
     except discord.LoginFailure:
-        logger.error("Invalid bot token! Please check your config.toml")
+        logger.error("Invalid bot token! Please check your DISCORD_TOKEN in .env")
         sys.exit(1)
     except Exception as e:
         logger.error(f"Failed to start bot: {e}")
