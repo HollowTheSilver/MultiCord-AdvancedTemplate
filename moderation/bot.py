@@ -49,7 +49,8 @@ else:
 TOKEN = os.getenv('DISCORD_TOKEN')
 if not TOKEN:
     logger.error("DISCORD_TOKEN not found in environment variables!")
-    logger.error("Please create a .env file with your Discord bot token.")
+    logger.error("Run: multicord bot set-token <bot-name>")
+    logger.error("Or add DISCORD_TOKEN to .env file manually")
     sys.exit(1)
 
 # Bot configuration

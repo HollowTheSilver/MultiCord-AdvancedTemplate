@@ -296,7 +296,8 @@ def get_bot_token() -> str:
 
     if not token:
         raise ValueError(
-            "No Discord token found. Set DISCORD_TOKEN environment variable or create .env file"
+            "No Discord token found. Run: multicord bot set-token <bot-name>  "
+            "Or set DISCORD_TOKEN environment variable or create .env file"
         )
 
     return token
