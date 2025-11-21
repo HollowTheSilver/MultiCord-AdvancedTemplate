@@ -42,6 +42,8 @@
       "install_url": "https://github.com/yt-dlp/yt-dlp"
     }
   },
+  "dependencies": {},
+  "optional_dependencies": {},
   "installation": {
     "cli_command": "multicord cog add <bot-name> music-player",
     "notes": "Requires FFmpeg to be installed on the system for audio playback"

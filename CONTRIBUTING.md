@@ -413,9 +413,23 @@ All cogs **MUST** include:
      },
      "commands": {
        "group": ["command1", "command2"]
+     },
+     "dependencies": {
+       "other-cog": ">=1.0.0"
+     },
+     "optional_dependencies": {
+       "permissions": ">=1.0.0"
      }
    }
    ```
+
+   **Dependency Version Specifiers:**
+   - `>=1.0.0` - Minimum version required
+   - `^1.0.0` - Compatible with 1.x.x (semver)
+   - `~1.0.0` - Compatible with 1.0.x (patch only)
+   - `1.2.3` - Exact version match
+
+   The CLI automatically resolves and installs dependencies when users run `multicord cog add`.
 
 3. **requirements.txt** - Dependencies (even if empty)
    ```txt

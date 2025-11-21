@@ -30,6 +30,10 @@
     "warnings": ["warn", "warnings"],
     "channel": ["clear", "slowmode"]
   },
+  "dependencies": {},
+  "optional_dependencies": {
+    "permissions": ">=1.0.0"
+  },
   "installation": {
     "cli_command": "multicord cog add <bot-name> moderation-tools"
   }

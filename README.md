@@ -109,8 +109,30 @@ Complete music playback system with queue management and voice controls.
 Enterprise-grade 9-level permission hierarchy with intelligent role detection.
 
 ```bash
-# Install optional cogs
+# Install optional cogs (with automatic dependency resolution)
 multicord cog add my-bot permissions
+```
+
+### Cog Dependencies ⭐ NEW in v1.2
+
+Cogs can declare dependencies on other cogs. When you install a cog, the CLI automatically:
+1. Checks for required dependencies
+2. Prompts you to install missing dependencies
+3. Installs dependencies in the correct order
+4. Detects and prevents circular dependencies
+
+```bash
+# Example: Installing a cog with dependencies
+$ multicord cog add my-bot advanced-moderation
+
+Checking dependencies for 'advanced-moderation'...
+  ⚠ Missing: permissions (>=1.0.0)
+
+Install dependencies automatically? [Y/n]: y
+  → Installing permissions... ✓
+  → Installing advanced-moderation... ✓
+
+✓ Cogs installed successfully
 ```
 
 ---

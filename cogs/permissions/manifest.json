@@ -159,6 +159,8 @@
     "examples": "EXAMPLES.md",
     "api_reference": "API.md"
   },
+  "dependencies": {},
+  "optional_dependencies": {},
   "license": "MIT",
   "repository": "https://github.com/HollowTheSilver/MultiCord-Templates",
   "issues": "https://github.com/HollowTheSilver/MultiCord-Templates/issues",
