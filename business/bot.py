@@ -92,6 +92,10 @@ class BusinessBot(commands.Bot):
         logger = logging.getLogger('discord')
         logger.setLevel(logging.INFO)
 
+        # Ensure console can handle Unicode on Windows
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
         # Console handler with colors
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
