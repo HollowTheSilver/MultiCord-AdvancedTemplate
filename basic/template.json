@@ -1,0 +1,35 @@
+{
+  "$schema": "https://multicord.io/schemas/template.schema.json",
+  "type": "template",
+  "id": "basic",
+  "name": "Basic Discord Bot",
+  "description": "Simple, extensible Discord bot with command handling and event processing",
+  "version": "2.0.0",
+  "author": "MultiCord Team",
+  "category": "general",
+  "tags": ["starter", "simple", "beginner-friendly", "commands", "events"],
+  "discord_py_version": ">=2.0.0",
+  "python_version": ">=3.9",
+  "files": ["bot.py", "config.toml", "requirements.txt", ".env.example", ".gitignore", "cogs/.gitkeep", "README.md"],
+  "featured": true,
+  "default": true,
+  "changelog": {
+    "2.0.0": ["Security: Token now stored in .env file (BREAKING CHANGE)", "Feature: Auto-loads cogs from cogs/ directory", "Enhancement: Structured logging with file and console output", "Enhancement: Graceful shutdown handling", "Enhancement: Production-ready configuration defaults"],
+    "1.0.0": "Initial release with command handling and event processing"
+  },
+  "features": {
+    "slash_commands": false,
+    "prefix_commands": true,
+    "database": false,
+    "api_integration": false,
+    "voice_support": false
+  },
+  "permissions": {
+    "required": ["send_messages", "embed_links", "read_message_history"],
+    "optional": []
+  },
+  "compatibility": {
+    "multicord_version": ">=3.0.0",
+    "platforms": ["windows", "linux", "macos"]
+  }
+}

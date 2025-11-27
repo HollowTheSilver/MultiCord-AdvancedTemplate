@@ -1,0 +1,46 @@
+{
+  "$schema": "https://multicord.io/schemas/template.schema.json",
+  "type": "template",
+  "id": "moderation",
+  "name": "Moderation Bot",
+  "description": "Minimal scaffolding bot that loads moderation features from moderation-tools cog",
+  "version": "2.1.0",
+  "author": "MultiCord Team",
+  "category": "moderation",
+  "tags": ["moderation", "admin", "server-management", "warnings", "logging", "cog-based"],
+  "discord_py_version": ">=2.0.0",
+  "python_version": ">=3.9",
+  "requires_cogs": [
+    "moderation-tools@^1.0.0"
+  ],
+  "files": ["bot.py", "config.toml", "requirements.txt", ".env.example", ".gitignore", "cogs/.gitkeep", "README.md"],
+  "featured": true,
+  "changelog": {
+    "2.1.0": ["Architecture: Refactored to cog-based system", "Feature: Auto-installs moderation-tools cog during creation", "Enhancement: Template is now minimal scaffolding (~160 lines)", "Enhancement: Moderation logic moved to reusable cog"],
+    "2.0.0": ["Security: Token now stored in .env file (BREAKING CHANGE)", "Feature: Auto-loads cogs from cogs/ directory", "Enhancement: Structured logging with file and console output", "Enhancement: Graceful shutdown handling", "Enhancement: UTF-8 encoding for international characters"],
+    "1.0.0": "Initial release with kick, ban, timeout, warn, and role management features"
+  },
+  "features": {
+    "slash_commands": false,
+    "prefix_commands": true,
+    "database": false,
+    "api_integration": false,
+    "voice_support": false
+  },
+  "permissions": {
+    "required": [
+      "send_messages",
+      "embed_links",
+      "kick_members",
+      "ban_members",
+      "manage_messages",
+      "manage_roles",
+      "moderate_members"
+    ],
+    "optional": ["manage_channels", "view_audit_log"]
+  },
+  "compatibility": {
+    "multicord_version": ">=3.0.0",
+    "platforms": ["windows", "linux", "macos"]
+  }
+}

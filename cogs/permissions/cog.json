@@ -1,0 +1,36 @@
+{
+  "$schema": "https://multicord.io/schemas/cog.schema.json",
+  "type": "cog",
+  "id": "permissions",
+  "name": "Custom Permissions System",
+  "description": "Enterprise-grade hierarchical permission system with intelligent role detection",
+  "version": "1.0.0",
+  "author": "HollowTheSilver",
+  "category": "administration",
+  "tags": ["permissions", "roles", "administration", "security", "hierarchy"],
+  "discord_py_version": ">=2.0.0",
+  "python_version": ">=3.9",
+  "database_required": false,
+  "database_optional": true,
+  "files": ["__init__.py", "permissions.py", "permission_models.py", "permission_persistence.py", "embeds.py", "requirements.txt", "manifest.json", "README.md"],
+  "featured": true,
+  "changelog": {
+    "1.0.0": "Initial release with 9-level permission hierarchy, role classification, and Unicode normalization"
+  },
+  "features": {
+    "permission_levels": 9,
+    "role_classification": true,
+    "unicode_normalization": true,
+    "auto_configuration": true,
+    "audit_logging": true,
+    "decorators": true
+  },
+  "permissions": {
+    "required": ["send_messages", "embed_links", "read_message_history", "manage_roles"],
+    "optional": ["administrator"]
+  },
+  "compatibility": {
+    "multicord_version": ">=3.0.0",
+    "platforms": ["windows", "linux", "macos"]
+  }
+}
