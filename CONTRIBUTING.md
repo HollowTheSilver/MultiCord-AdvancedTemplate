@@ -338,37 +338,70 @@ DISCORD_TOKEN=your_token_here
 
 ---
 
-### Step 4: Update manifest.json
+### Step 4: Create template.json (v3.0 Manifest)
 
-Add your template to `manifest.json`:
+Create `your-template/template.json` with v3.0 schema:
 
 ```json
 {
-  "templates": {
-    "your-template": {
-      "name": "Your Template Name",
-      "description": "Brief description",
-      "version": "1.0.0",
-      "author": "Your Name",
-      "category": "general",
-      "tags": ["tag1", "tag2"],
-      "discord_py_version": ">=2.3.0",
-      "python_version": ">=3.9",
-      "files": ["bot.py", "config.toml", ".env.example", ".gitignore", "requirements.txt", "README.md", "cogs/.gitkeep"],
-      "featured": false,
-      "auto_install_cogs": [
-        {
-          "id": "cog-name",
-          "version": ">=1.0.0",
-          "required": true,
-          "reason": "Provides core functionality"
-        }
-      ],
-      "changelog": {
-        "1.0.0": ["Initial release"]
-      }
-    }
+  "$schema": "https://multicord.io/schemas/template.schema.json",
+  "type": "template",
+  "id": "your-template",
+  "name": "Your Template Name",
+  "description": "Brief description",
+  "version": "1.0.0",
+  "author": "Your Name",
+  "category": "general",
+  "tags": ["tag1", "tag2"],
+  "discord_py_version": ">=2.3.0",
+  "python_version": ">=3.9",
+  "requires_cogs": [
+    "cog-name@^1.0.0"
+  ],
+  "files": ["bot.py", "config.toml", ".env.example", ".gitignore", "requirements.txt", "README.md", "cogs/.gitkeep"],
+  "featured": false,
+  "changelog": {
+    "1.0.0": ["Initial release"]
+  },
+  "features": {
+    "slash_commands": false,
+    "prefix_commands": true,
+    "database": false
+  },
+  "permissions": {
+    "required": ["send_messages", "embed_links"],
+    "optional": []
+  },
+  "compatibility": {
+    "multicord_version": ">=3.0.0",
+    "platforms": ["windows", "linux", "macos"]
   }
+}
+```
+
+**v3.0 Key Fields**:
+- `$schema` - JSON Schema URL for validation (required)
+- `type: "template"` - Distinguishes from cogs and collections (required)
+- `requires_cogs` - Array of cog dependencies with version constraints (replaces `auto_install_cogs`)
+- `compatibility.multicord_version` - Explicit MultiCord version requirement (required)
+
+**Version Constraint Formats**:
+- `^1.0.0` - Compatible with 1.x.x (semantic versioning)
+- `~1.2.0` - Compatible with 1.2.x (patch updates only)
+- `>=1.0.0` - Minimum version 1.0.0
+- `1.2.3` - Exact version match
+
+### Step 5: Update multicord.json
+
+Add your template to the repository collection manifest:
+
+```json
+{
+  "items": [
+    "basic/",
+    "moderation/",
+    "your-template/"
+  ]
 }
 ```
 
@@ -394,54 +427,86 @@ All cogs **MUST** include:
    - All commands and event handlers
    - Comprehensive docstrings
 
-2. **manifest.json** - Cog metadata
+2. **cog.json** - v3.0 Cog manifest (required)
+   ```json
+   {
+     "$schema": "https://multicord.io/schemas/cog.schema.json",
+     "type": "cog",
+     "id": "cog-name",
+     "name": "Cog Name",
+     "description": "Brief description",
+     "version": "1.0.0",
+     "author": "Your Name",
+     "category": "moderation",
+     "tags": ["tag1", "tag2"],
+     "discord_py_version": ">=2.0.0",
+     "python_version": ">=3.9",
+     "dependencies": {
+       "other-cog": "^1.0.0"
+     },
+     "optional_dependencies": {
+       "permissions": ">=1.0.0"
+     },
+     "database_required": false,
+     "database_optional": false,
+     "files": ["__init__.py", "requirements.txt", "cog.json", "manifest.json", "README.md"],
+     "featured": false,
+     "changelog": {
+       "1.0.0": "Initial release"
+     },
+     "features": {
+       "feature1": true
+     },
+     "commands": {
+       "group": ["command1", "command2"]
+     },
+     "permissions": {
+       "required": ["send_messages"],
+       "optional": []
+     },
+     "compatibility": {
+       "multicord_version": ">=3.0.0",
+       "platforms": ["windows", "linux", "macos"]
+     },
+     "installation": {
+       "cli_command": "multicord cog add <bot-name> cog-name"
+     }
+   }
+   ```
+
+   **v3.0 Key Fields**:
+   - `$schema` - JSON Schema URL for validation (required)
+   - `type: "cog"` - Distinguishes from templates and collections (required)
+   - `compatibility.multicord_version` - Explicit MultiCord version requirement (required)
+   - `dependencies` / `optional_dependencies` - Cog-to-cog dependencies with version constraints
+
+   **Dependency Version Specifiers:**
+   - `^1.0.0` - Compatible with 1.x.x (semantic versioning)
+   - `~1.0.0` - Compatible with 1.0.x (patch updates only)
+   - `>=1.0.0` - Minimum version required
+   - `1.2.3` - Exact version match
+
+   The CLI automatically resolves and installs dependencies when users run `multicord cog add`.
+
+3. **manifest.json** - Legacy v2.1 manifest (backward compatibility)
+   Create a simplified v2.1 `manifest.json` for backward compatibility with older CLI versions:
    ```json
    {
      "name": "Cog Name",
      "id": "cog-name",
      "version": "1.0.0",
      "author": "Your Name",
-     "description": "Brief description",
-     "category": "moderation",
-     "tags": ["tag1", "tag2"],
-     "discord_py_version": ">=2.0.0",
-     "python_version": ">=3.9",
-     "database_required": false,
-     "files": ["__init__.py", "requirements.txt", "manifest.json", "README.md"],
-     "features": {
-       "feature1": true
-     },
-     "permissions": {
-       "required": ["send_messages"],
-       "optional": []
-     },
-     "commands": {
-       "group": ["command1", "command2"]
-     },
-     "dependencies": {
-       "other-cog": ">=1.0.0"
-     },
-     "optional_dependencies": {
-       "permissions": ">=1.0.0"
-     }
+     "description": "Brief description"
    }
    ```
 
-   **Dependency Version Specifiers:**
-   - `>=1.0.0` - Minimum version required
-   - `^1.0.0` - Compatible with 1.x.x (semver)
-   - `~1.0.0` - Compatible with 1.0.x (patch only)
-   - `1.2.3` - Exact version match
-
-   The CLI automatically resolves and installs dependencies when users run `multicord cog add`.
-
-3. **requirements.txt** - Dependencies (even if empty)
+4. **requirements.txt** - Dependencies (even if empty)
    ```txt
    # Additional dependencies beyond discord.py
    # Leave empty if no additional dependencies
    ```
 
-4. **README.md** - Comprehensive documentation
+5. **README.md** - Comprehensive documentation
    - Features list
    - Installation instructions
    - Command usage examples
