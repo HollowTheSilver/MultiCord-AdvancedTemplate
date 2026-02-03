@@ -1,0 +1,37 @@
+{
+  "$schema": "https://multicord.io/schemas/template.schema.json",
+  "type": "template",
+  "id": "advanced",
+  "name": "Advanced Discord Bot",
+  "description": "Production-ready bot template with automatic cog loading, structured logging, and enterprise features",
+  "version": "3.0.0",
+  "author": "MultiCord Team",
+  "category": "advanced",
+  "tags": ["production", "enterprise", "modular", "docker", "sharding"],
+  "discord_py_version": ">=2.3.0",
+  "python_version": ">=3.9",
+  "files": ["bot.py", "config.toml", "requirements.txt", ".env.example", "cogs/.gitkeep"],
+  "featured": true,
+  "features": {
+    "slash_commands": false,
+    "prefix_commands": true,
+    "database": false,
+    "api_integration": false,
+    "voice_support": false,
+    "automatic_cog_loading": true,
+    "structured_logging": true,
+    "toml_configuration": true,
+    "environment_variables": true,
+    "global_error_handling": true,
+    "docker_support": true,
+    "sharding_ready": true
+  },
+  "permissions": {
+    "required": ["send_messages", "embed_links", "read_message_history"],
+    "optional": []
+  },
+  "compatibility": {
+    "multicord_version": ">=3.0.0",
+    "platforms": ["windows", "linux", "macos"]
+  }
+}

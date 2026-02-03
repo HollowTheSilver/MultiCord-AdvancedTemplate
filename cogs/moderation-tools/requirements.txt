@@ -1,2 +1,0 @@
-# Moderation Tools Cog Requirements
-# No additional dependencies beyond discord.py (provided by template)

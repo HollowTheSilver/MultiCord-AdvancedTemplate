@@ -1,8 +1,8 @@
 """
-Professional Business Discord Bot
-==================================
+Advanced Discord Bot Template
+=============================
 
-A production-ready Discord bot template for commissioned work.
+A production-ready Discord bot template with enterprise features.
 
 Features:
 - Automatic cog loading from cogs/ directory
@@ -10,12 +10,12 @@ Features:
 - Structured logging with file and console output
 - Environment variable support
 - Graceful shutdown handling
-- Health check endpoint
 - Professional error handling
+- Docker and sharding ready
 
 Usage:
-    1. Configure your bot token in config.toml or .env
-    2. Install cogs: multicord cog add <bot-name> <cog-name>
+    1. Add your bot token to .env (DISCORD_TOKEN=your_token)
+    2. Install cogs: multicord bot cog add <cog-name> <bot-name>
     3. Run: python bot.py
 """
 
@@ -35,17 +35,17 @@ except ImportError:
     import tomllib as tomli
 
 
-class BusinessBot(commands.Bot):
+class AdvancedBot(commands.Bot):
     """
-    Professional Discord bot for commissioned work.
+    Advanced Discord bot with enterprise features.
 
     Automatically loads all cogs from the cogs/ directory and provides
-    enterprise-grade logging, configuration, and error handling.
+    structured logging, configuration, and error handling.
     """
 
     def __init__(self, config: dict):
         """
-        Initialize the business bot.
+        Initialize the bot.
 
         Args:
             config: Configuration dictionary from config.toml
@@ -71,7 +71,7 @@ class BusinessBot(commands.Bot):
             command_prefix=self.bot_config.get('prefix', '!'),
             intents=intents,
             help_command=commands.DefaultHelpCommand() if self.bot_config.get('enable_help', True) else None,
-            description=self.bot_config.get('description', 'Professional Business Bot')
+            description=self.bot_config.get('description', 'Advanced Discord Bot')
         )
 
         # Set up logging
@@ -324,7 +324,7 @@ async def main():
         sys.exit(1)
 
     # Create and run bot
-    async with BusinessBot(config) as bot:
+    async with AdvancedBot(config) as bot:
         try:
             await bot.start(token)
         except KeyboardInterrupt:
