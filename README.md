@@ -247,13 +247,90 @@ moderation/bot.py (160 lines)  # Scaffolding
 
 ---
 
+## 📋 V3.0 MANIFEST SYSTEM (✅ DEPLOYED January 2026)
+
+### Overview
+
+**Status**: ✅ Complete and Merged (January 11, 2026)
+
+Templates v3.0 introduces a 3-layer manifest system with JSON Schema validation, providing professional dependency management and explicit version compatibility.
+
+### The Three Layers
+
+#### **Layer 1: Repository Collection** (`multicord.json`)
+Located at repository root, describes the entire collection:
+
+```json
+{
+  "$schema": "https://multicord.io/schemas/multicord.schema.json",
+  "type": "collection",
+  "name": "MultiCord Official Templates",
+  "version": "3.0.0",
+  "items": ["basic/", "moderation/", "cogs/moderation-tools/"]
+}
+```
+
+**Purpose**: Registry of all templates and cogs in this repository.
+
+#### **Layer 2: Individual Items** (`template.json` / `cog.json`)
+Located in each template/cog directory:
+
+```json
+{
+  "$schema": "https://multicord.io/schemas/template.schema.json",
+  "type": "template",
+  "id": "moderation",
+  "name": "Moderation Bot",
+  "version": "2.1.0",
+  "requires_cogs": ["moderation-tools@^1.0.0"],
+  "compatibility": {
+    "multicord_version": ">=3.0.0"
+  }
+}
+```
+
+**Purpose**: Package metadata with dependencies and version constraints.
+
+#### **Layer 3: Runtime Config** (`config.toml` / `.env`)
+Located in bot instance (unchanged from v2.1.0):
+
+```toml
+[bot]
+prefix = "!"
+name = "MyBot"
+```
+
+**Purpose**: Bot-specific runtime configuration and secrets.
+
+### Key Features
+
+- **JSON Schema Validation**: Manifests validated against official schemas
+- **npm-Style Versions**: `^1.0.0` (compatible), `~1.2.0` (patch), `>=1.0.0` (minimum)
+- **Explicit Dependencies**: `requires_cogs` declares cog requirements with version constraints
+- **Version Gating**: `compatibility.multicord_version` ensures template compatibility
+- **Type Safety**: `type` field distinguishes "template", "cog", "collection"
+
+### For Contributors
+
+When creating templates or cogs for v3.0:
+
+1. **Include `$schema` URL** for validation
+2. **Set `type` field** ("template" or "cog")
+3. **Specify `compatibility.multicord_version: ">=3.0.0"`**
+4. **Use `requires_cogs`** (not `auto_install_cogs`) for dependencies
+5. **Reference schemas**: See [CLAUDE.md](./Templates/CLAUDE.md) for detailed manifest examples
+
+**Migration from v2.1.0**: Templates v3.0 replaces single `manifest.json` with per-item `template.json`/`cog.json` files + repository-level `multicord.json`.
+
+---
+
 ## 🤝 Contributing
 
 We welcome community contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for details on:
-- Creating new templates
-- Creating new cogs
+- Creating new templates (v3.0 manifest requirements)
+- Creating new cogs (v3.0 schema validation)
 - Template and cog naming conventions
-- Testing requirements
+- Testing requirements with v3.0 manifests
 - Pull request process
 
 ### Quick Start for Contributors

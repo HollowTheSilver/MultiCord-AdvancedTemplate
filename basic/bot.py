@@ -67,21 +67,42 @@ intents.message_content = True
 intents.guilds = True
 intents.members = True
 
+# Discord sharding detection (for 2500+ guild bots)
+SHARD_ID = int(os.getenv('SHARD_ID', 0))
+SHARD_COUNT = int(os.getenv('SHARD_COUNT', 1))
 
-class BasicBot(commands.Bot):
-    """Basic Discord bot with MultiCord integration."""
+# Select appropriate base class based on sharding
+if SHARD_COUNT > 1:
+    BotBaseClass = commands.AutoShardedBot
+    logger.info(f"Sharding enabled: Running as shard {SHARD_ID}/{SHARD_COUNT}")
+else:
+    BotBaseClass = commands.Bot
+    logger.info("Sharding disabled: Running as single instance")
+
+
+class BasicBot(BotBaseClass):
+    """Basic Discord bot with MultiCord integration and automatic shard support."""
 
     def __init__(self):
-        super().__init__(
-            command_prefix=PREFIX,
-            description=DESCRIPTION,
-            intents=intents,
-            help_command=commands.DefaultHelpCommand()
-        )
+        # Build bot initialization kwargs
+        kwargs = {
+            'command_prefix': PREFIX,
+            'description': DESCRIPTION,
+            'intents': intents,
+            'help_command': commands.DefaultHelpCommand()
+        }
+
+        # Add sharding parameters if sharded
+        if SHARD_COUNT > 1:
+            kwargs['shard_ids'] = [SHARD_ID]
+            kwargs['shard_count'] = SHARD_COUNT
+
+        super().__init__(**kwargs)
         self.start_time = datetime.utcnow()
         self.bot_name = os.environ.get('BOT_NAME', 'basic-bot')
         self.bot_port = os.environ.get('BOT_PORT', '8100')
         self.logger = logger
+        self.shard_info = f"Shard {SHARD_ID}/{SHARD_COUNT}" if SHARD_COUNT > 1 else "Single instance"
 
     async def setup_hook(self):
         """Setup hook for bot initialization."""
@@ -141,7 +162,7 @@ class BasicBot(commands.Bot):
 
     async def on_ready(self):
         """Event triggered when bot is ready."""
-        self.logger.info(f"Bot is ready!")
+        self.logger.info(f"Bot is ready! ({self.shard_info})")
         self.logger.info(f"  Logged in as: {self.user.name} (ID: {self.user.id})")
         self.logger.info(f"  Connected to {len(self.guilds)} guild(s)")
         self.logger.info(f"  Loaded {len(self.cogs)} cog(s)")
