@@ -11,18 +11,23 @@ Features:
 - Environment variable support
 - Graceful shutdown handling
 - Professional error handling
-- Docker and sharding ready
+- Discord sharding support (for 2500+ guild bots)
+- Docker ready
 
 Usage:
     1. Add your bot token to .env (DISCORD_TOKEN=your_token)
     2. Install cogs: multicord bot cog add <cog-name> <bot-name>
     3. Run: python bot.py
+
+For sharding (2500+ guilds):
+    Set SHARD_ID and SHARD_COUNT environment variables
 """
 
 import asyncio
 import logging
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -35,12 +40,24 @@ except ImportError:
     import tomllib as tomli
 
 
-class AdvancedBot(commands.Bot):
+# Discord sharding detection (for 2500+ guild bots)
+SHARD_ID = int(os.getenv('SHARD_ID', 0))
+SHARD_COUNT = int(os.getenv('SHARD_COUNT', 1))
+
+
+def get_bot_base_class():
+    """Select appropriate bot base class based on sharding configuration."""
+    if SHARD_COUNT > 1:
+        return commands.AutoShardedBot
+    return commands.Bot
+
+
+class AdvancedBot(get_bot_base_class()):
     """
     Advanced Discord bot with enterprise features.
 
     Automatically loads all cogs from the cogs/ directory and provides
-    structured logging, configuration, and error handling.
+    structured logging, configuration, error handling, and sharding support.
     """
 
     def __init__(self, config: dict):
@@ -66,13 +83,31 @@ class AdvancedBot(commands.Bot):
         if self.bot_config.get('privileged_intents', {}).get('presences', False):
             intents.presences = True
 
+        # Build initialization kwargs
+        kwargs = {
+            'command_prefix': self.bot_config.get('prefix', '!'),
+            'intents': intents,
+            'help_command': commands.DefaultHelpCommand() if self.bot_config.get('enable_help', True) else None,
+            'description': self.bot_config.get('description', 'Advanced Discord Bot')
+        }
+
+        # Add sharding parameters if sharded
+        if SHARD_COUNT > 1:
+            kwargs['shard_ids'] = [SHARD_ID]
+            kwargs['shard_count'] = SHARD_COUNT
+
         # Initialize bot
-        super().__init__(
-            command_prefix=self.bot_config.get('prefix', '!'),
-            intents=intents,
-            help_command=commands.DefaultHelpCommand() if self.bot_config.get('enable_help', True) else None,
-            description=self.bot_config.get('description', 'Advanced Discord Bot')
-        )
+        super().__init__(**kwargs)
+
+        # Track startup time
+        self.start_time = datetime.utcnow()
+
+        # Bot identification (from environment)
+        self.bot_name = os.environ.get('BOT_NAME', 'advanced-bot')
+        self.bot_port = os.environ.get('BOT_PORT', '8100')
+
+        # Shard info for logging
+        self.shard_info = f"Shard {SHARD_ID}/{SHARD_COUNT}" if SHARD_COUNT > 1 else "Single instance"
 
         # Set up logging
         self.logger = self._setup_logging()
@@ -96,7 +131,7 @@ class AdvancedBot(commands.Bot):
         if hasattr(sys.stdout, 'reconfigure'):
             sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-        # Console handler with colors
+        # Console handler
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(logging.INFO)
         console_format = logging.Formatter(
@@ -129,7 +164,7 @@ class AdvancedBot(commands.Bot):
         Called when the bot is starting up.
         Loads all cogs from the cogs/ directory.
         """
-        self.logger.info("Starting bot setup...")
+        self.logger.info(f"Starting bot setup for {self.bot_name} ({self.shard_info})")
 
         # Load cogs automatically
         await self._load_cogs()
@@ -189,7 +224,7 @@ class AdvancedBot(commands.Bot):
 
     async def on_ready(self):
         """Called when the bot is fully connected and ready."""
-        self.logger.info(f"Bot is ready!")
+        self.logger.info(f"Bot is ready! ({self.shard_info})")
         self.logger.info(f"  Logged in as: {self.user.name} (ID: {self.user.id})")
         self.logger.info(f"  Connected to {len(self.guilds)} guild(s)")
         self.logger.info(f"  Loaded {len(self.cogs)} cog(s)")
@@ -200,6 +235,14 @@ class AdvancedBot(commands.Bot):
             activity = discord.Game(name=status)
             await self.change_presence(activity=activity)
             self.logger.info(f"  Status set to: {status}")
+
+    async def on_guild_join(self, guild):
+        """Event triggered when bot joins a guild."""
+        self.logger.info(f'Joined guild: {guild.name} (ID: {guild.id})')
+
+    async def on_guild_remove(self, guild):
+        """Event triggered when bot leaves a guild."""
+        self.logger.info(f'Left guild: {guild.name} (ID: {guild.id})')
 
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
         """
@@ -309,6 +352,10 @@ def get_bot_token() -> str:
 
 async def main():
     """Main entry point for the bot."""
+    # Log sharding configuration
+    if SHARD_COUNT > 1:
+        print(f"🔀 Sharding enabled: Shard {SHARD_ID} of {SHARD_COUNT}")
+
     # Load configuration
     try:
         config = load_config()
