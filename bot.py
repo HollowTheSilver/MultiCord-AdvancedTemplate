@@ -27,7 +27,7 @@ import asyncio
 import logging
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -100,7 +100,7 @@ class AdvancedBot(get_bot_base_class()):
         super().__init__(**kwargs)
 
         # Track startup time
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(timezone.utc)
 
         # Bot identification (from environment)
         self.bot_name = os.environ.get('BOT_NAME', 'advanced-bot')
