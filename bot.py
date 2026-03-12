@@ -175,11 +175,10 @@ class AdvancedBot(get_bot_base_class()):
         """
         Automatically discover and load all cogs from the cogs/ directory.
 
-        This method:
-        - Scans the cogs/ directory for valid Python packages
-        - Loads each cog using Discord.py's extension system
-        - Reports success/failure for each cog
-        - Continues loading even if individual cogs fail
+        Supports three cog layouts:
+        - Standalone .py files (cogs/counter.py)
+        - Python packages with __init__.py (cogs/permissions/)
+        - Directories with a single .py cog file (cogs/counter/counter.py)
         """
         cogs_dir = Path(__file__).parent / 'cogs'
 
@@ -187,28 +186,41 @@ class AdvancedBot(get_bot_base_class()):
             self.logger.info("No cogs directory found - running without extensions")
             return
 
-        # Find all valid cog directories
         cog_count = 0
         failed_cogs = []
 
         for item in cogs_dir.iterdir():
-            # Skip non-directories and private directories
-            if not item.is_dir() or item.name.startswith('_'):
+            if item.name.startswith('_'):
                 continue
 
-            # Check if it has __init__.py (is a valid Python package)
-            if not (item / '__init__.py').exists():
-                self.logger.warning(f"Skipping {item.name} - not a valid Python package")
+            extension_name = None
+
+            if item.is_file() and item.suffix == '.py':
+                # Standalone cog file: cogs/counter.py
+                extension_name = f'cogs.{item.stem}'
+
+            elif item.is_dir():
+                if (item / '__init__.py').exists():
+                    # Python package: cogs/permissions/
+                    extension_name = f'cogs.{item.name}'
+                else:
+                    # Directory with a standalone .py file: cogs/counter/counter.py
+                    py_files = [f for f in item.iterdir() if f.suffix == '.py' and not f.name.startswith('_')]
+                    if len(py_files) == 1:
+                        extension_name = f'cogs.{item.name}.{py_files[0].stem}'
+                    elif len(py_files) > 1:
+                        self.logger.warning(f"Skipping {item.name} - multiple .py files without __init__.py")
+                        continue
+
+            if not extension_name:
                 continue
 
-            # Try to load the cog
-            cog_name = f'cogs.{item.name}'
             try:
-                await self.load_extension(cog_name)
-                self.logger.info(f"✓ Loaded cog: {item.name}")
+                await self.load_extension(extension_name)
+                self.logger.info(f"Loaded cog: {item.name}")
                 cog_count += 1
             except Exception as e:
-                self.logger.error(f"✗ Failed to load cog {item.name}: {e}")
+                self.logger.error(f"Failed to load cog {item.name}: {e}")
                 failed_cogs.append((item.name, str(e)))
 
         # Summary
